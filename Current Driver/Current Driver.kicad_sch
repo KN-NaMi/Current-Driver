@@ -7971,7 +7971,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "D45H11G (n_b)"
+		(property "Value" "D45H11G"
 			(at 186.69 45.7199 0)
 			(effects
 				(font
@@ -8566,7 +8566,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "NPN"
+		(property "Value" "D44H11G"
 			(at 186.69 106.6799 0)
 			(effects
 				(font
