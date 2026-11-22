@@ -1,0 +1,35 @@
+* ===================================================================
+* Thorlabs DFB1550 (egz. S/N DFB-77232), Tcase = 25 C (TEC), CW
+* Model zastepczy dopasowany do karty pomiarowej (Fig. 1, 3, 6)
+* Statyczny: P(I), lambda(I) i Imon(I) odpowiadaja rownowadze termicznej.
+* Wyprowadzenia:
+*   A K    - anoda / katoda lasera
+*   P      - moc optyczna w swiatlowodzie, V(P) [V] = P [mW]
+*   L      - dlugosc fali, V(L) [V] = lambda - 1550 nm [nm]
+*   PDK PDA - fotodioda monitorujaca (katoda / anoda), polaryzowac zaporowo
+* Zgodne z LTspice i ngspice. Uzycie: XLD anoda katoda P L PDK PDA DFB1550
+* Parametry Cj (Cjo) i Lpk sa zalozone - brak ich w karcie.
+* ===================================================================
+.subckt DFB1550 A K P L PDK PDA
+.param Ith=49.3m Eps=2m
+.param c1=0.16549 c2=0.05018 c3=-0.09015 c4=0.01213
+.param m1=1.0608e-03 m2=-8.8062e-04 m3=6.4535e-04 m4=-2.5417e-04
+.param Lam0=2.600 Kap=2.0160
+* obudowa butterfly: indukcyjnosc wyprowadzen (zalozona)
+Lpk A A1 5n
+* czujnik pradu lasera
+Vs A1 A2 0
+* zlacze + rezystancja szeregowa (dopasowane do V-I), pojemnosc zalozona
+D1 A2 K DFBLD
+* prog z miekkim przejsciem: X = softplus(I - Ith)
+Bx X 0 V=max(I(Vs)-Ith,0)+Eps*ln(1+exp(-abs(I(Vs)-Ith)/Eps))
+* moc optyczna [mW]
+Bp P 0 V=1000*V(X)*(c1+V(X)*(c2+V(X)*(c3+V(X)*c4)))
+* dlugosc fali: lambda = 1550 + Lam0 + Kap*Pdiss  [nm], Pdiss = U*I - Popt
+Bl L 0 V=Lam0+Kap*(V(A2,K)*I(Vs)-V(P)/1000)
+* fotodioda monitorujaca
+Bm PDK PDA I=V(X)*(m1+V(X)*(m2+V(X)*(m3+V(X)*m4)))
+Dpd PDA PDK DFBPD
+.model DFBLD D(Is=6.263e-16 N=1 Rs=1.0987 Cjo=50p M=0.5)
+.model DFBPD D(Is=1n Cjo=10p)
+.ends DFB1550

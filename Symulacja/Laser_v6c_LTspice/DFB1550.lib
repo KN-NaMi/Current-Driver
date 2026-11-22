@@ -1,0 +1,45 @@
+* ===================================================================
+* Thorlabs DFB1550 (egz. S/N DFB-77232), model zastepczy v2, CW
+* Dopasowany do karty pomiarowej: tabela (Iop 800 mA, Pout 118,2 mW,
+* VF 1,77 V, Imon 0,491 mA, Ith 49,3 mA, dl/dI 0,0048 nm/mA,
+* dl/dT 0,104 nm/C) oraz Fig. 1, 3 i 6 (P, V, lambda, Imon w funkcji I).
+* Wyprowadzenia:
+*   A K     - anoda / katoda lasera
+*   P       - moc optyczna w swiatlowodzie, V(P) [V] = P [mW]
+*   L       - dlugosc fali, V(L) [V] = lambda - 1550 nm [nm]
+*   PDK PDA - fotodioda monitorujaca (katoda / anoda), polaryzowac zaporowo
+* Parametry (wartosci domyslne = karta, Tc = 25 C); mozna je nadpisac
+* w instancji, np. w SpiceLine symbolu:  Tc=30  albo  Ith=52m
+*   Tc        temperatura obudowy [C] (TEC); przesuwa lambda o KT [nm/C]
+*   Ith, Eps  prad progowy [A] i szerokosc miekkiego przejscia przez prog [A]
+*   c1..c4    P[mW] = 1000*X*(c1 + c2*X + c3*X^2 + c4*X^3), X = I - Ith [A]
+*   m1..m4    Imon[A] = X*(m1 + m2*X + m3*X^2 + m4*X^3)
+*   Lam0, Kap lambda - 1550 nm = Lam0 + Kap*Pdiss + KT*(Tc-25), Pdiss = U*I - P
+*   Is, N, Rs charakterystyka V(I) zlacza (dioda + rezystancja szeregowa)
+* Ograniczenia: model statyczny (rownowaga termiczna). Lambda nie ma dynamiki
+* cieplnej, wiec przy modulacji 25 kHz jej amplituda jest zawyzona.
+* P(I), V(I) i Imon(I) obowiazuja dla Tc = 25 C. Cjo i Lpk sa zalozone.
+* Zgodne z LTspice i ngspice. Uzycie: XLD A K P L PDK PDA DFB1550 [Tc=..]
+* ===================================================================
+.subckt DFB1550 A K P L PDK PDA params: Tc=25 Ith=49.3m Eps=2m
++ c1=0.16549 c2=0.05018 c3=-0.09015 c4=0.01213
++ m1=1.0608e-03 m2=-8.8062e-04 m3=6.4535e-04 m4=-2.5417e-04
++ Lam0=2.600 Kap=2.0160 KT=0.104 Is=6.263e-16 N=1 Rs=1.0987
+* obudowa butterfly: indukcyjnosc wyprowadzen (zalozona)
+Lpk A A1 5n
+* czujnik pradu lasera
+Vs A1 A2 0
+* zlacze + rezystancja szeregowa (dopasowane do V-I), pojemnosc zalozona
+D1 A2 K DFBLD
+* prog z miekkim przejsciem: X = softplus(I - Ith)
+Bx X 0 V=max(I(Vs)-Ith,0)+Eps*ln(1+exp(-abs(I(Vs)-Ith)/Eps))
+* moc optyczna [mW]
+Bp P 0 V=1000*V(X)*(c1+V(X)*(c2+V(X)*(c3+V(X)*c4)))
+* dlugosc fali [nm ponad 1550 nm]
+Bl L 0 V=Lam0+KT*(Tc-25)+Kap*(V(A2,K)*I(Vs)-V(P)/1000)
+* fotodioda monitorujaca
+Bm PDK PDA I=V(X)*(m1+V(X)*(m2+V(X)*(m3+V(X)*m4)))
+Dpd PDA PDK DFBPD
+.model DFBLD D(Is={Is} N={N} Rs={Rs} Cjo=50p M=0.5)
+.model DFBPD D(Is=1n Cjo=10p)
+.ends DFB1550
